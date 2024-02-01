@@ -10,75 +10,77 @@ class Embedder:
         self.model = AutoModel.from_pretrained(model_name)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-        def mean_pooling(self, model_output, attention_mask):
-            """Perform mean poolomh on token embeddings base d on an attention mask
+    def mean_pooling(self, model_output, attention_mask):
+
+        """Perform mean pooling on token embeddings base d on an attention mask
             
-            This method takes the output of a language model and an attention mask to 
-            compute a mean-pooled representation of the input tokens.
+        This method takes the output of a language model and an attention mask to 
+        compute a mean-pooled representation of the input tokens.
             
-            Arguments:
-            ----------
-            model_output: torch.Tensor
+        Arguments:
+        ----------
+        model_output: torch.Tensor
                           The output from a language model, where the first element contains token embeddings for the input text
-            attention_mask: torch.Tensor
-                            A binary mask indicating which tokens should be considered in the poolinh.
-                            It should have the same length as the input text, with 1s for tokens to include and 0s for tokens to exclude
+        attention_mask: torch.Tensor
+                        A binary mask indicating which tokens should be considered in the poolinh.
+                        It should have the same length as the input text, with 1s for tokens to include and 0s for tokens to exclude
                             
-            Returns:
-            --------
-            embeddings: numpy array
-                        The mean-pooled representation of token embeddings, where each token's embedding is weighted by the attention mask
-            """
+        Returns:
+        --------
+        embeddings: numpy array
+                    The mean-pooled representation of token embeddings, where each token's embedding is weighted by the attention mask
+        """
 
-            token_embeddings = model_output[0]
-            input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-            embeddings = torch.sum(token_embeddings * input_mask_expanded, 1) /  torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+        token_embeddings = model_output[0]
+        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+        embeddings = torch.sum(token_embeddings * input_mask_expanded, 1) /  torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
-            return embeddings.numpy()
+        return embeddings.numpy()
 
-        def embed(X, batch_size=32, normalize_embeddings=True, convert_to_tensor=False):
-            """Embeds text
+    def embed(self, X, batch_size=32, normalize_embeddings=True, convert_to_tensor=False):
+
+        """Embeds text
             
-            Arguments:
-            ---------
-            X: iterable[str]
-               text to embed
-            batch_size: int
-                        batch size
+        Arguments:
+        ---------
+        X: iterable[str]
+           text to embed
+        batch_size: int
+                    batch size
             
-            Returns:
-            --------
-            embeddings: numpy array
-                        embeddings
-            """
+        Returns:
+        --------
+        embeddings: numpy array
+                    embeddings
+        """
 
-            if isinstance(X, str):
-                X = [X]
+        if isinstance(X, str):
+            X = [X]
 
-            text_embeddings = []
+        text_embeddings = []
 
-            for i in range(0, len(list(x)), batch_size):
-                text_batch = list(X)[i: i + batch_size]
-                encoded_input = self.tokenizer(text_batch, padding=True, return_tensors="pt")
+        for i in range(0, len(list(X)), batch_size):
+            text_batch = list(X)[i: i + batch_size]
+            encoded_input = self.tokenizer(text_batch, return_tensors="pt")
 
-                with torch.no_grad():
-                    model_output = self.model(**encoded_input)
+            with torch.no_grad():
+                model_output = self.model(**encoded_input)
 
-                embeddings = self.mean_pooling(model_output, encoded_input['attention_mask'])
-                text_embeddings.append(embeddings)
+            embeddings = self.mean_pooling(model_output, encoded_input['attention_mask'])
+            text_embeddings.append(embeddings)
             
-            embeddings = np.vstack(text_embeddings)
+        embeddings = np.vstack(text_embeddings)
 
-            if normalize_embeddings:
-                #L2 norm
-                norm = np.linalg.norm(embeddings, ord=2, axis=1, keepdims=True)
+        if normalize_embeddings:
+            #L2 norm
+            norm = np.linalg.norm(embeddings, ord=2, axis=1, keepdims=True)
 
-                embeddings = embeddings / norm
+            embeddings = embeddings / norm
             
-            if convert_to_tensor:
-                embeddings = pt.from_numpy(embeddings)
+        if convert_to_tensor:
+            embeddings = pt.from_numpy(embeddings)
 
-            if len(X) == 1:
-                embeddings = embeddings[0]
+        if len(X) == 1:
+            embeddings = embeddings[0]
             
-            return embeddings
+        return embeddings
