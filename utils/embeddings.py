@@ -11,8 +11,8 @@ class Embedder:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
         # add padding token since not all models have it
-        tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-        model.resize_token_embeddings(len(tokenizer))
+        self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+        self.model.resize_token_embeddings(len(tokenizer))
 
     def mean_pooling(self, model_output, attention_mask):
 
