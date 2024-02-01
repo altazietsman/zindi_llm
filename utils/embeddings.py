@@ -12,7 +12,7 @@ class Embedder:
 
         # add padding token since not all models have it
         self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-        self.model.resize_token_embeddings(len(tokenizer))
+        self.model.resize_token_embeddings(len(self.tokenizer))
 
     def mean_pooling(self, model_output, attention_mask):
 
