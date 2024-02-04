@@ -41,7 +41,7 @@ class Embedder:
 
         return embeddings.numpy()
 
-    def embed(self, X, batch_size=32, normalize_embeddings=True, convert_to_tensor=False):
+    def embed(self, X, batch_size=32, normalize_embeddings=False, convert_to_tensor=False):
 
         """Embeds text
             
@@ -65,7 +65,7 @@ class Embedder:
 
         for i in range(0, len(list(X)), batch_size):
             text_batch = list(X)[i: i + batch_size]
-            encoded_input = self.tokenizer(text_batch, padding=True, return_tensors="pt")
+            encoded_input = self.tokenizer(text_batch, padding=True, return_tensors="pt", truncation=True)
 
             with torch.no_grad():
                 model_output = self.model(**encoded_input)
