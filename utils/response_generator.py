@@ -2,6 +2,8 @@
 import pathlib
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoModel, AutoTokenizer, BitsAndBytesConfig
 import torch
+import yake
+
 
 
 class ResponseGenerator:
@@ -59,7 +61,7 @@ class ResponseGenerator:
         model: AutoModelForCausalLM
                loaded quantized model
         """
-        
+
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_use_double_quant=True,
@@ -74,3 +76,77 @@ class ResponseGenerator:
             trust_remote_code=True
         )
         return model
+        
+
+def get_response(text, llm, df_matches):
+    """Generate response using 
+    
+    Arguments:
+    ----------
+    text: str
+          query
+    llm: model
+         loaded model to use
+    df_matches: pandas datafram
+                text matches found
+
+    Return:
+    -------
+    response_dict: dict
+                   response information
+    """
+
+    # get matched book
+    book = df_matches['book'].mode()
+
+    if not book.empty:
+        book = book.iloc[0]
+
+    max_pages = df_matches[df_matches['book'] == book]["index"].max() 
+    min_pages = df_matches[df_matches['book'] == book]["index"].min()
+
+    booklet_information = df_matches['text'].values.tolist()
+
+    # We know the model can not handle more than 512 tokens, so adding a try except to reduce token size of prompt when needed
+    try:
+        query = prompt = f"""
+                {text}
+                Please also use the following information if applicable: {booklet_information}"""
+
+            
+        response = llm.generate(query)
+
+    except: 
+        query = prompt = f"""
+                {text}"""
+
+            
+        response = llm.generate(query)
+
+    response_dict = {"answer": response, "book": f"TG Booklet {book[-1]}", 
+                     "Paragraph": f"{min_pages}-{max_pages}"}
+
+    return response_dict
+
+
+def extract_keyword(text, top_n=4):
+    """Extract Keywords from text. To install: pip install git+https://github.com/LIAAD/yake
+    
+    Arguments:
+    ----------
+    text: str
+          text from which to extract keywords
+    top_n: int
+           number of keywords
+    
+    Return:
+    -------
+    keywords: list[str]
+              list of keywords
+    """
+
+    kw_extractor = yake.KeywordExtractor(top=top_n, stopwords=None)
+    keywords_predictions = kw_extractor.extract_keywords(text)
+    keywords = [prediction[0] for prediction in keywords_predictions]
+    
+    return keywords
