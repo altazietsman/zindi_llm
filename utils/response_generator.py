@@ -1,7 +1,7 @@
 
 import pathlib
-from transformers import AutoModelForCausalLM, AutoTokenizer, AutoModel, AutoTokenizer, BitsAndBytesConfig
 import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer, AutoModel, AutoTokenizer, BitsAndBytesConfig
 import yake
 
 
@@ -108,6 +108,9 @@ def get_response(text, llm, df_matches):
     booklet_information = df_matches['text'].values.tolist()
 
     # We know the model can not handle more than 512 tokens, so adding a try except to reduce token size of prompt when needed
+
+    # TODO: Fix this terrible situation below
+    # This is a horible way to do this, but it is late and I am tired
     try:
         query = prompt = f"""
                 {text}
@@ -117,8 +120,17 @@ def get_response(text, llm, df_matches):
         response = llm.generate(query)
 
     except: 
-        query = prompt = f"""
-                {text}"""
+        try:
+            query = prompt = f"""
+                    {text}
+                    Please also use the following information if applicable: {booklet_information[0]}"""
+
+                
+            response = llm.generate(query)
+
+        except: 
+            query = prompt = f"""
+                    {text}"""
 
             
         response = llm.generate(query)
