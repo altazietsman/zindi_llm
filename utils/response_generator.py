@@ -105,35 +105,29 @@ def get_response(text, llm, df_matches):
     max_pages = df_matches[df_matches['book'] == book]["index"].max() 
     min_pages = df_matches[df_matches['book'] == book]["index"].min()
 
-    booklet_information = df_matches['text'].values.tolist()
+    paragraph_words = []
 
-    # We know the model can not handle more than 512 tokens, so adding a try except to reduce token size of prompt when needed
+    for paragraph in df_matches['text'].values.tolist():
+        paragraph_words += paragraph.split(" ")
+        
+    if len(paragraph_words) > 300:
+        booklet_information = " ".join(paragraph_words[:300])
+    else:
+        booklet_information = " ".join(paragraph_words)
 
-    # TODO: Fix this terrible situation below
-    # This is a horible way to do this, but it is late and I am tired
-    try:
-        query = prompt = f"""
-                {text}
-                Please also use the following information if applicable: {booklet_information}"""
 
+    query = prompt = f"""
             
-        response = llm.generate(query)
+            {text}
 
-    except: 
-        try:
-            query = prompt = f"""
-                    {text}
-                    Please also use the following information if applicable: {booklet_information[0]}"""
-
-                
-            response = llm.generate(query)
-
-        except: 
-            query = prompt = f"""
-                    {text}"""
-
+            Use the following information to answer the above question: 
             
-        response = llm.generate(query)
+            "{booklet_information}" 
+            
+            """
+            
+    response = llm.generate(query)
+
 
     response_dict = {"answer": response, "book": f"TG Booklet {book[-1]}", 
                      "Paragraph": f"{min_pages}-{max_pages}"}
