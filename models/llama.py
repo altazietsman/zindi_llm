@@ -29,6 +29,6 @@ class llama:
                   response to query
         """
 
-        output = self.model(query)
+        output = self.model(query, echo=False)
         response = output['choices'][0]['text'].strip('\n')
         return response
