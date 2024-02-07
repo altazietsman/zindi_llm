@@ -118,16 +118,20 @@ def get_response(text, llm, df_matches):
 
     query = prompt = f"""
             
-            {text}
+            Q: {text}
 
-            Generate an answer using the following additional information: 
+            The information below can helpful to generate the answer: 
             
-            "{booklet_information}" 
+            "{booklet_information} A:" 
 
             
             """
+    try:
             
-    response = llm.generate(query)
+        response = llm.generate(query)
+
+    except:
+        response = llm.generate(text)
 
     clean_sentances = []
     for sentance in response.split("\n"):
