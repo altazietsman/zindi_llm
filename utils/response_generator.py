@@ -110,23 +110,31 @@ def get_response(text, llm, df_matches):
     for paragraph in df_matches['text'].values.tolist():
         paragraph_words += paragraph.split(" ")
         
-    if len(paragraph_words) > 300:
-        booklet_information = " ".join(paragraph_words[:300])
+    if len(paragraph_words) > 250:
+        booklet_information = " ".join(paragraph_words[:250])
     else:
         booklet_information = " ".join(paragraph_words)
 
 
     query = prompt = f"""
+            Answer the following question:
             
             {text}
 
             Use the following information to answer the above question: 
             
             "{booklet_information}" 
+
             
             """
             
     response = llm.generate(query)
+
+    clean_sentances = []
+    for sentance in response.split("\n"):
+        clean_sentances.append(sentance.strip())
+
+    response = " ".join(clean_sentances)
 
 
     response_dict = {"answer": response, "book": f"TG Booklet {book[-1]}", 
