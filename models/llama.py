@@ -12,7 +12,8 @@ class llama:
     """
 
     def __init__(self, model_path:str):
-        self.model = Llama(model_path=model_path)
+        self.model = Llama(model_path=model_path, n_gpu_layers=-1,
+        seed=1337)
 
     def generate(self, query:str):
         """Generates response
