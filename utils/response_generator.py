@@ -117,11 +117,10 @@ def get_response(text, llm, df_matches):
 
 
     query = prompt = f"""
-            Answer the following question:
             
             {text}
 
-            Use the following information to answer the above question: 
+            Generate an answer using the following additional information: 
             
             "{booklet_information}" 
 
