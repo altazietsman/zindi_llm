@@ -2,6 +2,7 @@ from transformers import AutoModel, AutoTokenizer
 import torch as pt 
 import numpy as np
 import torch
+from tqdm import tqdm
 
 class Embedder:
 
@@ -63,7 +64,7 @@ class Embedder:
 
         text_embeddings = []
 
-        for i in range(0, len(list(X)), batch_size):
+        for i in tqdm(range(0, len(list(X)), batch_size)):
             text_batch = list(X)[i: i + batch_size]
             encoded_input = self.tokenizer(text_batch, padding=True, return_tensors="pt", truncation=True)
 

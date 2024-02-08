@@ -62,7 +62,7 @@ def read_booklets(dir_path:str):
 
     for file in files:
         if file.startswith("book"):
-            df_booklet = pd.read_excel(dir_path + file)
+            df_booklet = pd.read_excel(dir_path + file, engine='openpyxl')
             df_booklet["book"] = file[:8]
             df_booklet.columns = ['index', 'text', 'book']
             booklets.append(df_booklet)
@@ -87,3 +87,29 @@ def retrieve_booklet_text(df_booklet, ids):
      pandas dataframe: matching rows
      """
      return df_booklet[df_booklet["index"].isin(ids)]
+
+def rename_booklets(dir_path:str):
+    """Rename booklets to 'booklet<i>
+
+    Arguments:
+    ----------
+    dir_path: str
+              path of where booklets are stored
+
+    Return:
+    -------
+    None
+    """
+
+    files = os.listdir(pathlib.Path(dir_path))
+
+    for file in files:
+        if file.startswith("TG Booklet"):
+            first_digit = file[11]
+            os.rename(dir_path + file, dir_path + "booklet" + first_digit + ".xlsx")
+            # os.rename(dir_path + file, dir_path + file[:8] + ".xlsx")
+        elif file.startswith("booklet"):
+            print('Seems like the booklets have already been renamed...')
+            return None
+
+    return None
