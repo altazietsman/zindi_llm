@@ -110,27 +110,37 @@ def get_response(text, llm, df_matches):
     for paragraph in df_matches['text'].values.tolist():
         paragraph_words += paragraph.split(" ")
         
-    if len(paragraph_words) > 250:
-        booklet_information = " ".join(paragraph_words[:250])
-    else:
-        booklet_information = " ".join(paragraph_words)
+    booklet_information = " ".join(paragraph_words)
 
-
-    query = prompt = f"""
+    try:
+        query = prompt = f"""
             
             Q: {text}
 
-            The information below can helpful to generate the answer: 
+            Use the information below to answer: 
             
             "{booklet_information} A:" 
 
             
             """
-    try:
             
         response = llm.generate(query)
 
     except:
+
+        booklet_information = " ".join(paragraph_words[:250])
+
+        query = prompt = f"""
+            
+            Q: {text}
+
+            The information below can be helpful to generate the answer: 
+            
+            "{booklet_information} A:" 
+
+            
+            """
+
         response = llm.generate(text)
 
     clean_sentances = []
