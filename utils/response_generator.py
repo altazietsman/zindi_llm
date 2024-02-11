@@ -78,7 +78,7 @@ class ResponseGenerator:
         return model
         
 
-def get_response(text, llm, df_matches):
+def get_response(text, llm, df_book_matches, df_question_matches):
     """Generate response using 
     
     Arguments:
@@ -87,8 +87,10 @@ def get_response(text, llm, df_matches):
           query
     llm: model
          loaded model to use
-    df_matches: pandas datafram
-                text matches found
+    df_book_matches: pandas datafram
+                     book text matches found
+    df_question_matches: pandas datafram
+                         question text matches found
 
     Return:
     -------
@@ -97,31 +99,46 @@ def get_response(text, llm, df_matches):
     """
 
     # get matched book
-    book = df_matches['book'].mode()
+    book = df_book_matches['book'].mode()
 
     if not book.empty:
         book = book.iloc[0]
 
-    max_pages = df_matches[df_matches['book'] == book]["index"].max() 
-    min_pages = df_matches[df_matches['book'] == book]["index"].min()
+    max_pages = df_book_matches[df_book_matches['book'] == book]["index"].max() 
+    min_pages = df_book_matches[df_book_matches['book'] == book]["index"].min()
 
     paragraph_words = []
 
-    for paragraph in df_matches['text'].values.tolist():
+    for paragraph in df_book_matches['text'].values.tolist():
         paragraph_words += paragraph.split(" ")
         
     booklet_information = " ".join(paragraph_words)
 
+    # get question matches
+    question_words = []
+
+    for question in df_question_matches['Question Answer'].values.tolist():
+        question_words += question.split(" ")
+        
+    question_information = " ".join(question_words)
+
     try:
         query = prompt = f"""
             
-            Q: {text}
-
-            Use the information below to answer: 
+            [INST] You are an assistant answering questions regarding information in the Technical Guidelines for Disease Surveillance and Response (TGs for IDSR) in Malawi. 
             
-            "{booklet_information} A:" 
+            Here is the question:
 
+            {text}
+
+            This section was retrieved from the TG book that might be useful. If it is not answer with the knowledge that you have.
             
+            {booklet_information} 
+            
+            Here is an example of the answer: 
+
+            {question_information}[/INST]" 
+
             """
             
         response = llm.generate(query)
@@ -132,13 +149,20 @@ def get_response(text, llm, df_matches):
 
         query = prompt = f"""
             
-            Q: {text}
-
-            The information below can be helpful to generate the answer: 
+            [INST] You are an assistant answering questions regarding information in the Technical Guidelines for Disease Surveillance and Response (TGs for IDSR) in Malawi. 
             
-            "{booklet_information} A:" 
+            Here is the question:
 
+            {text}
+
+            This section was retrieved from the TG book that might be useful. If it is not answer with the knowledge that you have.
             
+            {booklet_information} 
+            
+            Here is an example of the answer: 
+            
+            {question_information}[/INST]" 
+
             """
 
         response = llm.generate(text)

@@ -2,10 +2,11 @@ import numpy as np
 import os
 import pandas as pd
 import pathlib
+import re
 
 
 
-def search_content(query, df_sentances, index, embedder, k=5):
+def search_content(query, df_sentances, df_questions, book_index, question_index, embedder, k=5):
     """Function used to to returns relevant text based on query
     
     Arguments:
@@ -14,10 +15,17 @@ def search_content(query, df_sentances, index, embedder, k=5):
             query text
 
     df_sentances: pandas dataframe
-                  data frame with text columns that match index
+                  data frame with text columns that match book index
 
-    index: faiss index
-           index of text embeddings
+    df_questions: pandas dataframe
+                  data frame with text columns that match question index
+
+
+    book_index: faiss index
+                index of booklet embeddings
+
+    question_index: faiss index
+                    index of question embeddings
     
     k: int
        top number of matches to return
@@ -34,12 +42,17 @@ def search_content(query, df_sentances, index, embedder, k=5):
     query_vector = np.expand_dims(query_vector, axis=0)
 
     # We set k to limit the number of vectors we want to return
-    matched_em, matched_indexes = index.search(query_vector, k)
-    ids = matched_indexes[0][0:k]
+    matched_em_book, matched_indexes_book = book_index.search(query_vector, k)
+    ids_book = matched_indexes_book[0][0:k]
 
-    df = df_sentances.iloc[ids.tolist() ]
+    df_book = df_sentances.iloc[ids_book.tolist() ]
 
-    return df
+    matched_em_question, matched_indexes_question = question_index.search(query_vector, k=1)
+    ids_question = matched_indexes_question[0][0:k]
+
+    df_question = df_questions.iloc[ids_question.tolist() ]
+
+    return df_book, df_question
 
 
 def read_booklets(dir_path:str):
@@ -87,3 +100,21 @@ def retrieve_booklet_text(df_booklet, ids):
      pandas dataframe: matching rows
      """
      return df_booklet[df_booklet["index"].isin(ids)]
+
+def clean_text(text):
+    """Remove all characters besides letters from text
+    
+    Arguments:
+    ----------
+    text: str
+          text to clean
+
+    Return:
+    -------
+    text: str
+          cleaned text
+    """
+    
+    text = text.replace("\n", "")
+    text = re.sub(r'[^A-Za-z ]+', '', text)
+    return text
