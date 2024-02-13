@@ -1,0 +1,12 @@
+.env
+llama-2-7b-chat.ggmlv3.q4_1.bin
+settings.json
+*.xml
+.idea
+data/
+.ipynb_checkpoints
+__pycache__
+
+llama-2-7b-chat.Q6_K.gguf
+db/index.faiss
+db/index.pkl
