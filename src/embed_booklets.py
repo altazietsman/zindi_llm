@@ -48,14 +48,14 @@ def create_or_get_vector_store(chunks: list, recreate_embeddings=False) -> FAISS
         vectorstore = FAISS.from_documents(chunks, embeddings)
         vectorstore.save_local("./db")
     else:
-        print("LOADING DB")
+        # print("LOADING DB")
         vectorstore = FAISS.load_local("./db", embeddings)
 
     return vectorstore
 
 
 def embed_booklets(df, recreate_embeddings=False):
-    chunks = create_chunks(df, 1000, 20)
+    chunks = create_chunks(df, 1000, 0)
     vector_store = create_or_get_vector_store(chunks, recreate_embeddings=recreate_embeddings)
 
     return vector_store

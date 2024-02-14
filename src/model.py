@@ -1,4 +1,5 @@
 from langchain_community.llms import LlamaCpp
+import os
 
 from utils import format_docs
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel
@@ -16,18 +17,22 @@ def set_llm(
         temperature=0.5,
         max_tokens=256,
         top_p=0.5,
-        n_gpu_layers=8,
+        n_gpu_layers=10,
         n_batch=32,
-        n_ctx=1024,
+        n_ctx=2048,
         # callback_manager=callback_manager,
-        verbose=False,  # Verbose is required to pass to the callback manager
+        verbose=False,
+        seed=os.environ['SEED']
     )
 
     return llm
 
 
 def set_model_pipeline(llm, retriever, prompt_str):
-    rag_prompt = ChatPromptTemplate.from_template(prompt_str)
+    if isinstance(prompt_str, str):
+        rag_prompt = ChatPromptTemplate.from_template(prompt_str)
+    else: 
+        rag_prompt = prompt_str
     rag_chain_from_docs = (
         RunnablePassthrough.assign(context=(lambda x: format_docs(x["context"])))
         | rag_prompt
@@ -75,7 +80,9 @@ class CodeHealersModel:
         booklets = []
 
         for context in contexts:
-            booklets.append(context.dict())
+            context_dic = context.dict()
+            book = context_dic['metadata']['book']
+            booklets.append(book)
 
-        return contexts
+        return booklets
         
