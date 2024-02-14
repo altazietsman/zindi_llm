@@ -6,7 +6,7 @@ import re
 
 
 
-def search_content(query, df_sentances, df_questions, book_index, question_index, embedder, k=5):
+def search_content(query, df_sentances, book_index, embedder, k=5):
     """Function used to to returns relevant text based on query
     
     Arguments:
@@ -16,9 +16,6 @@ def search_content(query, df_sentances, df_questions, book_index, question_index
 
     df_sentances: pandas dataframe
                   data frame with text columns that match book index
-
-    df_questions: pandas dataframe
-                  data frame with text columns that match question index
 
 
     book_index: faiss index
@@ -47,13 +44,7 @@ def search_content(query, df_sentances, df_questions, book_index, question_index
 
     df_book = df_sentances.iloc[ids_book.tolist() ]
 
-    matched_em_question, matched_indexes_question = question_index.search(query_vector, k=1)
-    ids_question = matched_indexes_question[0][0:k]
-
-    df_question = df_questions.iloc[ids_question.tolist() ]
-
-    return df_book, df_question
-
+    return df_book
 
 def read_booklets(dir_path:str):
     """Reads all excel sheets of the booklets

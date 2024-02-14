@@ -3,6 +3,7 @@ import pathlib
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoModel, AutoTokenizer, BitsAndBytesConfig
 import yake
+from utils.utils import search_content
 
 
 
@@ -78,7 +79,7 @@ class ResponseGenerator:
         return model
         
 
-def get_response(text, llm, df_book_matches, df_question_matches):
+def get_response(text, llm, df_book_matches, gpu=False):
     """Generate response using 
     
     Arguments:
@@ -89,23 +90,12 @@ def get_response(text, llm, df_book_matches, df_question_matches):
          loaded model to use
     df_book_matches: pandas datafram
                      book text matches found
-    df_question_matches: pandas datafram
-                         question text matches found
 
     Return:
     -------
     response_dict: dict
                    response information
     """
-
-    # get matched book
-    book = df_book_matches['book'].mode()
-
-    if not book.empty:
-        book = book.iloc[0]
-
-    max_pages = df_book_matches[df_book_matches['book'] == book]["index"].max() 
-    min_pages = df_book_matches[df_book_matches['book'] == book]["index"].min()
 
     paragraph_words = []
 
@@ -114,33 +104,21 @@ def get_response(text, llm, df_book_matches, df_question_matches):
         
     booklet_information = " ".join(paragraph_words)
 
-    # get question matches
-    question_words = []
-
-    for question in df_question_matches['Question Answer'].values.tolist():
-        question_words += question.split(" ")
-        
-    question_information = " ".join(question_words)
-
     try:
         query = prompt = f"""
             
-            [INST] You are an assistant answering questions regarding information in the Technical Guidelines for Disease Surveillance and Response (TGs for IDSR) in Malawi. 
-            
-            Here is the question:
+            Q:
 
             {text}
 
-            This section was retrieved from the TG book that might be useful. If it is not answer with the knowledge that you have.
+            Use the information below to answer:
             
-            {booklet_information} 
+            [{booklet_information}]
             
-            Here is an example of the answer: 
-
-            {question_information}[/INST]" 
+            A: 
 
             """
-            
+                    
         response = llm.generate(query)
 
     except:
@@ -149,19 +127,15 @@ def get_response(text, llm, df_book_matches, df_question_matches):
 
         query = prompt = f"""
             
-            [INST] You are an assistant answering questions regarding information in the Technical Guidelines for Disease Surveillance and Response (TGs for IDSR) in Malawi. 
-            
-            Here is the question:
+            Q:
 
             {text}
 
-            This section was retrieved from the TG book that might be useful. If it is not answer with the knowledge that you have.
+            Use the information below to answer:
             
-            {booklet_information} 
+            [{booklet_information}]
             
-            Here is an example of the answer: 
-            
-            {question_information}[/INST]" 
+            A:
 
             """
 
@@ -174,10 +148,39 @@ def get_response(text, llm, df_book_matches, df_question_matches):
     response = " ".join(clean_sentances)
 
 
-    response_dict = {"answer": response, "book": f"TG Booklet {book[-1]}", 
-                     "Paragraph": f"{min_pages}-{max_pages}"}
+    response_dict = {"answer": response}
 
     return response_dict
+
+def get_paragraph_info(query, df_booklet, embedder, fastIndex):
+    """Return book number and paragraph numbers of matches
+    
+    Arguments:
+    ----------
+    query: str
+           question
+    df_booklet : pandas dataframe
+                 original booklet 
+    embedder: embedding model
+    fastIndex: fastIndex
+               index of book
+     
+    Return:
+    -------
+    dict: book and paragraph info
+    """
+
+    df_book_matches = search_content(query=query, df_sentances=df_booklet, book_index=fastIndex, embedder=embedder, k=5)
+    # get matched book
+    book = df_book_matches['book'].mode()
+
+    if not book.empty:
+        book = book.iloc[0]
+
+    max_pages = df_book_matches[df_book_matches['book'] == book]["index"].max() 
+    min_pages = df_book_matches[df_book_matches['book'] == book]["index"].min()
+
+    return {"book":book, "paragraphs": f"{min_pages}-{max_pages}"}
 
 
 def extract_keyword(text, top_n=4):
