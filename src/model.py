@@ -81,6 +81,7 @@ class CodeHealersModel:
 
         for context in contexts:
             context_dic = context.dict()
+            print(context_dic)
             book = context_dic['metadata']['book']
             booklets.append(book)
 

@@ -32,6 +32,8 @@ def read_booklets(dir_path: str) -> pd.DataFrame:
     df_booklet = pd.concat(booklets)
     df_booklet["text"] = df_booklet["text"].astype("str")
 
+    # print(df_booklet.head())
+    # print(df_booklet[(df_booklet['index'] == 140) & (df_booklet['book'] == 'booklet6')])
     return df_booklet
 
 
@@ -52,7 +54,8 @@ def clean_text(text):
     text = text.replace("\n", "")
 
     # Remove non-alphabetic characters and extra spaces
-    text = re.sub(r"[^A-Za-z ]+", "", text)
+    text = re.sub(r"[^A-Za-z0-9 /.,!?]+", "", text)
+
 
     # Remove specific substring 'BOOKLET xxx'
     text = text.replace("BOOKLET ONE", "")
@@ -61,6 +64,12 @@ def clean_text(text):
     text = text.replace("BOOKLET FOUR", "")
     text = text.replace("BOOKLET FIVE", "")
     text = text.replace("BOOKLET SIX", "")
+
+    # Replace spaces that are incorrectly encoded
+    text = text.replace(u'\xa0', u' ')
+
+    # Convert duplicated spaces to single spaces
+    text = re.sub(r'\s+', ' ', text)
 
     # Check if the cleaned text is empty or contains only spaces
     if text.isupper():
@@ -77,6 +86,8 @@ def preprocess_booklets(booklet_dir="./data/data/booklets/", save_to_csv=True):
 
     # Remove rows where cleanText length is less than 15 chars
     df_booklet = df_booklet[(df_booklet["cleanText"].str.len() >= 15)]
+
+    # print(df_booklet[(df_booklet['index'] == 140) & (df_booklet['book'] == 'booklet6')])
 
     if save_to_csv:
         df_booklet.to_csv("./data/data/resources/booklet_clean.csv")
