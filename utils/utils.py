@@ -74,7 +74,7 @@ def read_booklets(dir_path:str):
     df_booklet = pd.concat(booklets)
     df_booklet['text'] = df_booklet['text'].astype('str')
 
-    return df_booklet
+    return df_booklet.reset_index()
     
 def retrieve_booklet_text(df_booklet, ids):
      """Retrieve all row with matching ids
@@ -106,6 +106,35 @@ def clean_text(text):
           cleaned text
     """
     
-    text = text.replace("\n", "")
-    text = re.sub(r'[^A-Za-z ]+', '', text)
+    text = text.replace("\n", "").replace("\t", " ").replace("_", "").replace("/", "").replace("*", "")
+    text = re.sub(r'[^\x00-\x7F]', ' ', text)
+    text = re.sub(' {2,}', ' ', text)
     return text
+
+
+def reformat_abbreviations(abbreviation_paragraph):
+    """Takes in the paragraphs with abbreviations and reformats it to ensure abbreviations and definitions are mathced
+    
+    Arguments:
+    ----------
+    abbreviation_paragraph: string
+                            paragraph with abbreviations
+
+    Returns:
+    --------
+    abbreviations_dict: dict
+                        dictionary of abbreviations and definitions
+    """
+   
+    pairs = abbreviation_paragraph.split('\ufdd0')
+
+    pairs = [pair.strip() for pair in pairs if pair.strip()]
+
+    abbreviations_dict = {}
+    for i in range(0, len(pairs), 2):
+        abbreviations = pairs[i].split('\u2029')
+        meanings = pairs[i+1].split('\u2029')
+        for abbreviation, meaning in zip(abbreviations, meanings):
+            abbreviations_dict["Abbreviation " + abbreviation.strip()] = meaning.strip()
+
+    return abbreviations_dict

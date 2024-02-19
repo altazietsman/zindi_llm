@@ -79,7 +79,7 @@ class ResponseGenerator:
         return model
         
 
-def get_response(text, llm, df_book_matches, gpu=False):
+def get_response(text, llm, df_book_matches, text_column, gpu=False):
     """Generate response using 
     
     Arguments:
@@ -88,6 +88,8 @@ def get_response(text, llm, df_book_matches, gpu=False):
           query
     llm: model
          loaded model to use
+    text_column: str
+                 column name of text
     df_book_matches: pandas datafram
                      book text matches found
 
@@ -99,46 +101,20 @@ def get_response(text, llm, df_book_matches, gpu=False):
 
     paragraph_words = []
 
-    for paragraph in df_book_matches['text'].values.tolist():
+    for paragraph in df_book_matches[text_column].values.tolist():
         paragraph_words += paragraph.split(" ")
         
     booklet_information = " ".join(paragraph_words)
 
     try:
-        query = prompt = f"""
-            
-            Q:
-
-            {text}
-
-            Use the information below to answer:
-            
-            [{booklet_information}]
-            
-            A: 
-
-            """
-                    
+        query=f"{text}. Use the following information to answer: {booklet_information} Answer in 1 sentance."                   
         response = llm.generate(query)
 
     except:
 
         booklet_information = " ".join(paragraph_words[:250])
 
-        query = prompt = f"""
-            
-            Q:
-
-            {text}
-
-            Use the information below to answer:
-            
-            [{booklet_information}]
-            
-            A:
-
-            """
-
+        query=f"{text}. Use the following information to answer: {booklet_information} Answer in 1 sentance."
         response = llm.generate(text)
 
     clean_sentances = []
