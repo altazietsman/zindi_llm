@@ -24,7 +24,7 @@ def create_submission():
 
     model = CodeHealersModel(retriever=retriever, prompt_string=prompt_string)
 
-    num_chunks = 8
+    num_chunks = 1
     test_df_chunks = np.array_split(test_df, num_chunks)
     i=1
     for test_df_chunk in test_df_chunks:
@@ -42,11 +42,12 @@ def create_submission():
             print_line()
 
             keywords = extract_keyword(answer, top_n=5)
+            booklet, indices = model.get_context_booklets()
 
             response['keywords'] = keywords
             response['answer'] = answer
-            response['reference_document'] = 'book'
-            response['paragraph(s)_number'] = 1
+            response['reference_document'] = booklet[0]
+            response['paragraph(s)_number'] = indices[0]
 
             responses.append(response)
 
@@ -54,23 +55,18 @@ def create_submission():
 
         df_responses['ID'] = test_df_chunk['ID']
         df_responses['Question'] = test_df_chunk['Question Text']
+        df_responses['reference_document'] = df_responses['reference_document'].replace({r'booklet(\d)': r'TG Booklet \1'}, regex=True)
 
         df_submission_chunk = get_submission_df(df_responses=df_responses)
-
-        # df_responses.columns = ['keywords', 'question_answer', 'reference_document', 'paragraph(s)_number', 'ID', 'Question']
-
-        # df_submission = pd.melt(df_responses, id_vars=['ID'], value_vars=['question_answer', 'reference_document', 'paragraph(s)_number', "keywords"])
-        # df_submission['ID'] = df_submission['ID'] + '_' + df_submission['variable']
-        # df_submission.columns = ["ID", "variable", "Target"]
-        # df_submission = df_submission[['ID', "Target"]].set_index("ID")
 
         df_submission_chunk.to_csv(f'./data/submissions/submission_bt_sample_{i}.csv', index=True)
         if i < num_chunks:
             i+=1
             print('Resting for a little :) ...')
-            time.sleep(240)
+            time.sleep(180)
 
     df_submission = join_submissions()
+    
     df_submission.to_csv(f'./data/submissions/submission_bt.csv', index=True)
 
 if __name__ == "__main__":

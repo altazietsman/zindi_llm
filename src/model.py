@@ -17,7 +17,7 @@ def set_llm(
         temperature=0.5,
         max_tokens=256,
         top_p=0.5,
-        n_gpu_layers=10,
+        n_gpu_layers=8,
         n_batch=32,
         n_ctx=2048,
         # callback_manager=callback_manager,
@@ -78,12 +78,16 @@ class CodeHealersModel:
         contexts = self.model_output['context']
 
         booklets = []
+        indices = []
 
         for context in contexts:
             context_dic = context.dict()
-            print(context_dic)
+            # print(context_dic)
             book = context_dic['metadata']['book']
             booklets.append(book)
 
-        return booklets
+            index = context_dic['metadata']['index']
+            indices.append(index)
+
+        return booklets, indices
         
