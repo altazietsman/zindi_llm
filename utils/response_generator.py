@@ -79,7 +79,7 @@ class ResponseGenerator:
         return model
         
 
-def get_response(text, llm, df_book_matches, text_column, gpu=False):
+def get_response(text, llm, df_book_matches, text_column,  gpu=False):
     """Generate response using 
     
     Arguments:
@@ -107,14 +107,22 @@ def get_response(text, llm, df_book_matches, text_column, gpu=False):
     booklet_information = " ".join(paragraph_words)
 
     try:
-        query=f"{text}. Use the following information to answer: {booklet_information} Answer in 1 sentance."                   
+        query=f"""You are a specialist in Malawian public health. 
+        You have access to the context below, and must answer the question posed to you based entirely on that context. 
+        Keep your answer to a maximum of 2 sentence, and use proper grammar.
+        If you don't know the answer, say that you don't know. Don't make up an answer.
+    \nQuestion: {text} \nContext: {booklet_information}"""                   
         response = llm.generate(query)
 
     except:
 
         booklet_information = " ".join(paragraph_words[:250])
 
-        query=f"{text}. Use the following information to answer: {booklet_information} Answer in 1 sentance."
+        query=f"""You are a specialist in Malawian public health. 
+        You have access to the context below, and must answer the question posed to you based entirely on that context. 
+        Keep your answer to a maximum of 2 sentence, and use proper grammar.
+        If you don't know the answer, say that you don't know. Don't make up an answer.
+    \nQuestion: {text} \nContext: {booklet_information}""" 
         response = llm.generate(text)
 
     clean_sentances = []

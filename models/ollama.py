@@ -30,6 +30,6 @@ class Ollama:
                   response to query
         """
 
-        response = ollama.generate(model=self.model, prompt=query, options={"num_gpu":self.num_gpu, "seed":1337})
+        response = ollama.generate(model=self.model, prompt=query, options={"num_gpu":self.num_gpu, "seed":1337, "temperature":0})
 
         return response['response']
