@@ -118,7 +118,7 @@ def get_response(text, llm, booklet_matches, text_column,  gpu=False):
 
     except:
 
-        booklet_information = " ".join(paragraph_words[:250])
+        booklet_information = " ".join(paragraph_words[:1000])
 
         query=f"""You are a specialist in Malawian public health. 
         You have access to the context below, and must answer the question posed to you based entirely on that context. 

@@ -35,7 +35,7 @@ def search_content(query, df_sentances, book_index, embedder, k=5):
     pandas dataframe: dataframe with text from top matches
     """
     
-    query_vector = embedder.embed(query)
+    query_vector = embedder.encode(query)
     query_vector = np.expand_dims(query_vector, axis=0)
 
     # We set k to limit the number of vectors we want to return
