@@ -3,6 +3,9 @@ import pathlib
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoModel, AutoTokenizer, BitsAndBytesConfig
 import yake
+from utils.utils import search_content
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 
@@ -78,7 +81,7 @@ class ResponseGenerator:
         return model
         
 
-def get_response(text, llm, df_matches):
+def get_response(text, llm, booklet_matches, text_column,  gpu=False):
     """Generate response using 
     
     Arguments:
@@ -87,8 +90,10 @@ def get_response(text, llm, df_matches):
           query
     llm: model
          loaded model to use
-    df_matches: pandas datafram
-                text matches found
+    text_column: str
+                 column name of text
+    booklet_matches: list
+                    book text matches found
 
     Return:
     -------
@@ -96,41 +101,30 @@ def get_response(text, llm, df_matches):
                    response information
     """
 
-    # get matched book
-    book = df_matches['book'].mode()
-
-    if not book.empty:
-        book = book.iloc[0]
-
-    max_pages = df_matches[df_matches['book'] == book]["index"].max() 
-    min_pages = df_matches[df_matches['book'] == book]["index"].min()
-
     paragraph_words = []
 
-    for paragraph in df_matches['text'].values.tolist():
+    for paragraph in booklet_matches:
         paragraph_words += paragraph.split(" ")
         
-    if len(paragraph_words) > 250:
-        booklet_information = " ".join(paragraph_words[:250])
-    else:
-        booklet_information = " ".join(paragraph_words)
+    booklet_information = " ".join(paragraph_words)
 
-
-    query = prompt = f"""
-            
-            Q: {text}
-
-            The information below can helpful to generate the answer: 
-            
-            "{booklet_information} A:" 
-
-            
-            """
     try:
-            
+        query=f"""You are a specialist in Malawian public health. 
+        You have access to the context below, and must answer the question posed to you based entirely on that context. 
+        Keep your answer to a maximum of 2 sentence, and use proper grammar.
+        If you don't know the answer, say that you don't know. Don't make up an answer.
+    \nQuestion: {text} \nContext: {booklet_information}"""                   
         response = llm.generate(query)
 
     except:
+
+        booklet_information = " ".join(paragraph_words[:1000])
+
+        query=f"""You are a specialist in Malawian public health. 
+        You have access to the context below, and must answer the question posed to you based entirely on that context. 
+        Keep your answer to a maximum of 2 sentence, and use proper grammar.
+        If you don't know the answer, say that you don't know. Don't make up an answer.
+    \nQuestion: {text} \nContext: {booklet_information}""" 
         response = llm.generate(text)
 
     clean_sentances = []
@@ -140,10 +134,43 @@ def get_response(text, llm, df_matches):
     response = " ".join(clean_sentances)
 
 
-    response_dict = {"answer": response, "book": f"TG Booklet {book[-1]}", 
-                     "Paragraph": f"{min_pages}-{max_pages}"}
+    response_dict = {"answer": response}
 
     return response_dict
+
+def get_paragraph_info(query, df_booklet, embedder, fastIndex):
+    """Return book number and paragraph numbers of matches
+    
+    Arguments:
+    ----------
+    query: str
+           question
+    df_booklet : pandas dataframe
+                 original booklet 
+    embedder: embedding model
+    fastIndex: fastIndex
+               index of book
+     
+    Return:
+    -------
+    dict: book and paragraph info
+    """
+
+    df_book_matches = search_content(query=query, df_sentances=df_booklet, book_index=fastIndex, embedder=embedder, k=3)
+
+    # get matched book
+    book = df_book_matches['book'].mode()
+
+    if not book.empty:
+        book = book.iloc[0]
+
+    max_pages = df_book_matches[df_book_matches['book'] == book]["index"].max() 
+    min_pages = df_book_matches[df_book_matches['book'] == book]["index"].min()
+
+    if (max_pages != min_pages):
+        return {"book":book, "paragraphs": f"{min_pages}-{max_pages}"}
+    else:
+        return {"book":book, "paragraphs": f"{min_pages}"}
 
 
 def extract_keyword(text, top_n=4):
@@ -167,3 +194,49 @@ def extract_keyword(text, top_n=4):
     keywords = [prediction[0] for prediction in keywords_predictions]
     
     return keywords
+
+def find_matching_paragraphs(text_to_check, df_booklet, threshold=0.9):
+    """Returns matching paragraphs
+    
+    Arguments:
+    ----------
+    text_to_check: str
+    df_booklet: pandas_dataframe
+                dataframe with booklet information
+    threshold: float
+                threshold to find matches
+
+    Return:
+    ------
+    dict: dictionary with book and paragraph information
+    """
+
+    # Initialize TfidfVectorizer
+    tfidf_vectorizer = TfidfVectorizer()
+
+    # Fit and transform the text in the DataFrame
+    tfidf_matrix = tfidf_vectorizer.fit_transform(df_booklet['cleanText'])
+
+    # Transform the provided text
+    provided_text_tfidf = tfidf_vectorizer.transform([text_to_check])
+
+    # Calculate cosine similarity between the provided text and each paragraph in the DataFrame
+    cosine_similarities = cosine_similarity(provided_text_tfidf, tfidf_matrix).flatten()
+
+    # Find paragraphs that meet or exceed the threshold
+    matching_paragraph_indices = [i for i, score in enumerate(cosine_similarities) if score >= threshold]
+
+    if matching_paragraph_indices:
+        # Get the corresponding paragraph numbers
+        matching_paragraph_numbers = df_booklet.iloc[matching_paragraph_indices]['paragraph'].tolist()
+        matching_paragraph_numbers = [str(int(i)) for i in matching_paragraph_numbers]
+        matching_book_number = df_booklet.iloc[matching_paragraph_numbers]['book'].values.tolist()
+        matching_book_number = [f"TG Booklet {i[-1]}" for i in matching_book_number]
+        return {"book": ", ".join(matching_book_number), "paragraph":', '.join(matching_paragraph_numbers)}
+    
+    else:
+        # If no paragraphs meet the threshold, fallback to selecting the paragraph with the highest similarity
+        closest_paragraph_index = cosine_similarities.argmax()
+        closest_paragraph_number = df_booklet.iloc[closest_paragraph_index]['paragraph']
+        closest_book_number = df_booklet.iloc[closest_paragraph_index]['book']
+        return {"book": f"TG Booklet {closest_book_number[-1]}" , "paragraph":', '.join([str(closest_paragraph_number)])}  # Return as a list

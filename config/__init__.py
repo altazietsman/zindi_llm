@@ -1,1 +1,0 @@
-# dir for any functions relating to config, env variables etc. Need to make sure that I keep track of everything
