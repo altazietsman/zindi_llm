@@ -1,8 +1,8 @@
 # zindi_llm
 
-This repository demonstrated how create an  AI assistant capable of providing knowledge contained in the Malawi Technical Guidelines for Integrated Disease Surveillance and Response (TGs for IDSR).
+This repository demonstrated how to create an  AI assistant capable of providing knowledge contained in the Malawi Technical Guidelines for Integrated Disease Surveillance and Response (TGs for IDSR).
 
-Models wre required to run on cpu. Qauntized models were therefor used.
+Models were required to run on cpu. Qauntized models were therefor used.
 
 # ENV
 
